@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpha AI</title>
+    <!-- Google Fonts and Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <!-- Markdown parsing library -->
+    <script src="https://cdn.jsdelivr.net/npm/showdown/dist/showdown.min.js"></script>
+
+    <style>
+        :root {
+            --primary-bg: #121212;
+            --secondary-bg: #1e1e1e;
+            --tertiary-bg: #2a2a2a;
+            --text-color: #e0e0e0;
+            --text-secondary: #b0b0b0;
+            --accent-color: #4a90e2;
+            --accent-hover: #5a9cec;
+            --border-color: #333333;
+            --font-family: 'Inter', sans-serif;
+            --border-radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--secondary-bg);
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            transition: margin-left 0.3s ease-in-out;
+            border-right: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .sidebar.closed {
+            margin-left: -260px;
+        }
+
+        .sidebar-header {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-button {
+            width: 100%;
+            padding: 12px;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: background-color 0.2s;
+            font-family: var(--font-family);
+        }
+
+        .sidebar-button:hover {
+            background-color: var(--tertiary-bg);
+        }
+
+        .chat-history {
+            flex-grow: 1;
+            overflow-y: auto;
+            color: var(--text-secondary);
+        }
+
+        .chat-history p {
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .sidebar-footer {
+            padding: 16px 0;
+            font-weight: 600;
+            color: var(--accent-color);
+            text-align: center;
+            font-size: 1.1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+
+        /* --- Main Chat Container --- */
+        .chat-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: var(--primary-bg);
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .menu-button, .chat-header-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        
+        .menu-button:hover, .chat-header-button:hover {
+            background-color: var(--tertiary-bg);
+            color: var(--text-color);
+        }
+
+        .chat-title {
+            margin: 0 auto;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .chat-header-button {
+            font-size: 0.9rem;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+        }
+        
+        /* --- Chat Box --- */
+        .chat-box {
+            flex-grow: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .chat-message {
+            max-width: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-message.user { align-self: flex-end; }
+        .chat-message.bot { align-self: flex-start; }
+
+        .message-content {
+            background-color: var(--secondary-bg);
+            padding: 12px 18px;
+            border-radius: 18px;
+            position: relative;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        .chat-message.user .message-content {
+            background-color: var(--accent-color);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-message.bot .message-content {
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Image preview in user message */
+        .message-content .user-image-preview {
+            max-width: 100%;
+            border-radius: var(--border-radius);
+            margin-bottom: 8px;
+        }
+
+
+        .message-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .action-btn {
+            background: var(--tertiary-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 8px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .action-btn:hover { background-color: #3c3c3c; color: var(--text-color); }
+        .action-btn .material-symbols-outlined { font-size: 16px; }
+
+        .bot-thinking {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bot-thinking .dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-secondary);
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .bot-thinking .dot:nth-child(1) { animation-delay: -0.32s; }
+        .bot-thinking .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1.0); }
+        }
+
+        /* Generated Content */
+        .generated-image-container {
+            margin-top: 12px;
+        }
+        .generated-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        pre {
+            background-color: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin: 12px 0 0 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+        }
+        .message-content p { margin-bottom: 8px; }
+        .message-content p:last-child { margin-bottom: 0; }
+        
+        /* --- Input Area --- */
+        .chat-input-area {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+        .input-wrapper {
+            display: flex;
+            align-items: center;
+            background-color: var(--secondary-bg);
+            border-radius: 25px;
+            padding: 5px;
+            border: 1px solid var(--border-color);
+        }
+        #user-input {
+            flex-grow: 1;
+            border: none;
+            background: none;
+            color: var(--text-color);
+            padding: 12px;
+            font-size: 1rem;
+            resize: none;
+            max-height: 150px;
+            outline: none;
+            font-family: var(--font-family);
+        }
+        .input-button {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        .input-button:hover { color: var(--text-color); }
+        .send-button { background-color: var(--accent-color); color: #fff; }
+        .send-button:hover { background-color: var(--accent-hover); color: #fff; }
+
+        /* Preview container for uploaded image */
+        #image-preview-container {
+            position: relative;
+            margin: 0 10px;
+        }
+        #image-preview {
+            max-height: 40px;
+            max-width: 40px;
+            border-radius: 5px;
+        }
+        #remove-image-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <button class="sidebar-button" id="new-chat-btn">
+                <span class="material-symbols-outlined">add</span>
+                New Chat
+            </button>
+        </div>
+        <div class="chat-history" id="chat-history">
+            <p>Your chat history will appear here.</p>
+        </div>
+        <div class="sidebar-footer">Alpha AI</div>
+    </aside>
+
+    <main class="chat-container">
+        <header class="chat-header">
+            <button class="menu-button" id="menu-toggle">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <h1 class="chat-title">Alpha</h1>
+            <button class="chat-header-button" id="share-chat-btn">
+                <span class="material-symbols-outlined">share</span>
+                Share
+            </button>
+        </header>
+
+        <div class="chat-box" id="chat-box">
+            <!-- Initial message is now added dynamically by script -->
+        </div>
+
+        <footer class="chat-input-area">
+            <div class="input-wrapper">
+                <input type="file" id="image-upload-input" accept="image/*" style="display: none;">
+                <button class="input-button" id="file-btn" aria-label="Add File" title="Attach File">
+                    <span class="material-symbols-outlined">attach_file</span>
+                </button>
+                <button class="input-button" id="camera-btn" aria-label="Use Camera" title="Use Camera (Not Implemented)">
+                    <span class="material-symbols-outlined">photo_camera</span>
+                </button>
+                <div id="image-preview-container" style="display: none;"></div>
+                <textarea id="user-input" placeholder="Message Alpha..." rows="1"></textarea>
+                <button class="input-button send-button" id="send-btn" aria-label="Send Message" title="Send">
+                    <span class="material-symbols-outlined">send</span>
+                </button>
+            </div>
+        </footer>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const chatBox = document.getElementById('chat-box');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            const newChatBtn = document.getElementById('new-chat-btn');
+            const fileBtn = document.getElementById('file-btn');
+            const imageUploadInput = document.getElementById('image-upload-input');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            
+            const YOUR_API_KEY = "AIzaSyAVM3nb3gYD2_JrUGF9rCE752YU52T9rVo"; 
+
+            const markdownConverter = new showdown.Converter();
+            let chatHistory = [];
+            let uploadedImage = null;
+
+            // --- Initializer ---
+            initializeChat();
+
+            // --- Event Listeners ---
+            menuToggle.addEventListener('click', () => sidebar.classList.toggle('closed'));
+            sendBtn.addEventListener('click', handleUserMessage);
+            newChatBtn.addEventListener('click', startNewChat);
+
+            fileBtn.addEventListener('click', () => imageUploadInput.click());
+            imageUploadInput.addEventListener('change', handleImageUpload);
+
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleUserMessage();
+                }
+            });
+
+            userInput.addEventListener('input', () => {
+                userInput.style.height = 'auto';
+                userInput.style.height = `${userInput.scrollHeight}px`;
+            });
+            
+            chatBox.addEventListener('click', handleActionButtons);
+
+            // --- Core Functions ---
+            
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+            function initializeChat() {
+                chatBox.innerHTML = '';
+                const initialBotMessage = "Hello! I'm Alpha. You can now upload an image and ask me questions about it!";
+                chatHistory = [{
+                    role: "model",
+                    parts: [{ text: initialBotMessage }]
+                }];
+                addMessage('bot', `<p>${initialBotMessage}</p>`, null);
+            }
+
+            function startNewChat() {
+                initializeChat();
+                document.getElementById('chat-history').innerHTML = '<p>Chat history cleared.</p>';
+                removeUploadedImage();
+            }
+
+            async function handleUserMessage() {
+                const messageText = userInput.value.trim();
+                if (!messageText && !uploadedImage) return;
+
+                let userContent = '';
+                const userParts = [];
+                
+                if (uploadedImage) {
+                    userContent += `<img src="${uploadedImage.dataUrl}" alt="User upload" class="user-image-preview">`;
+                    userParts.push({
+                        inlineData: {
+                            mimeType: uploadedImage.mimeType,
+                            data: uploadedImage.base64
+                        }
+                    });
+                }
+                
+                if (messageText) {
+                    userContent += `<p>${messageText}</p>`;
+                    userParts.unshift({ text: messageText });
+                }
+
+                addMessage('user', userContent, null);
+                chatHistory.push({ role: "user", parts: userParts });
+
+                userInput.value = '';
+                userInput.style.height = 'auto';
+                removeUploadedImage();
+
+                const thinkingMessageId = `bot-msg-${Date.now()}`;
+                addMessage('bot', `<div class="bot-thinking"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`, thinkingMessageId);
+
+                await getAIResponse(messageText, thinkingMessageId);
+            }
+
+            function handleImageUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const dataUrl = e.target.result;
+                    const base64 = dataUrl.split(',')[1];
+                    uploadedImage = {
+                        dataUrl,
+                        base64,
+                        mimeType: file.type
+                    };
+                    displayImagePreview(dataUrl);
+                };
+                reader.readAsDataURL(file);
+                
+                imageUploadInput.value = '';
+            }
+            
+            function displayImagePreview(dataUrl) {
+                imagePreviewContainer.innerHTML = `
+                    <img src="${dataUrl}" id="image-preview">
+                    <button id="remove-image-btn">&times;</button>
+                `;
+                imagePreviewContainer.style.display = 'block';
+                document.getElementById('remove-image-btn').addEventListener('click', removeUploadedImage);
+            }
+
+            function removeUploadedImage() {
+                uploadedImage = null;
+                imagePreviewContainer.innerHTML = '';
+                imagePreviewContainer.style.display = 'none';
+            }
+            
+            function addMessage(sender, content, messageId) {
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `chat-message ${sender}`;
+                if (messageId) {
+                    messageWrapper.id = messageId;
+                }
+
+                const messageContentDiv = document.createElement('div');
+                messageContentDiv.className = 'message-content';
+                messageContentDiv.innerHTML = content;
+
+                messageWrapper.appendChild(messageContentDiv);
+                chatBox.appendChild(messageWrapper);
+                chatBox.scrollTop = chatBox.scrollHeight;
+                
+                if(sender === 'bot' && !content.includes('bot-thinking')) {
+                     addActions(messageWrapper, content);
+                }
+            }
+
+            function updateMessage(messageId, newContent) {
+                const messageElement = document.getElementById(messageId);
+                if (messageElement) {
+                    const messageContentDiv = messageElement.querySelector('.message-content');
+                    if (messageContentDiv) {
+                        messageContentDiv.innerHTML = newContent;
+                        addActions(messageElement, newContent);
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    }
+                }
+            }
+            
+            function addActions(messageWrapper, content) {
+                const existingActions = messageWrapper.querySelector('.message-actions');
+                if (existingActions) existingActions.remove();
+
+                const actions = document.createElement('div');
+                actions.className = 'message-actions';
+                let hasImage = content.includes('<img');
+                
+                actions.innerHTML = `
+                    <button class="action-btn copy-msg-btn" title="Copy Message">
+                        <span class="material-symbols-outlined">content_copy</span> Copy
+                    </button>
+                    ${hasImage && !content.includes('user-image-preview') ? `
+                    <button class="action-btn download-img-btn" title="Download Image">
+                        <span class="material-symbols-outlined">download</span> Download
+                    </button>` : ''}
+                `;
+                
+                messageWrapper.appendChild(actions);
+            }
+            
+            async function getAIResponse(prompt, thinkingMessageId) {
+                if (!YOUR_API_KEY) {
+                    updateMessage(thinkingMessageId, `<p><b>Configuration Error</b><br>The API key is missing. Please get a free key from Google AI Studio and add it to the 'YOUR_API_KEY' variable in the index.html file.</p>`);
+                    return;
+                }
+                
+                const lowerCasePrompt = prompt.toLowerCase();
+                const imageNouns = ['image', 'picture', 'photo', 'logo', 'poster', 'drawing', 'artwork', 'icon', 'sketch'];
+                const creationVerbs = ['generate', 'create', 'draw', 'make', 'design', 'show me'];
+
+                const hasCreationVerb = creationVerbs.some(verb => lowerCasePrompt.startsWith(verb));
+                const hasImageNoun = imageNouns.some(noun => lowerCasePrompt.includes(noun));
+                const isSimpleDefinitionQuestion = (lowerCasePrompt.startsWith('what is a') || lowerCasePrompt.startsWith('what are')) && hasImageNoun;
+
+                if (uploadedImage) {
+                    await generateTextResponse(prompt, thinkingMessageId);
+                } 
+                else if ((hasCreationVerb || hasImageNoun) && !isSimpleDefinitionQuestion) {
+                    chatHistory.pop();
+                    await generateImageResponse(prompt, thinkingMessageId);
+                } 
+                else {
+                    await generateTextResponse(prompt, thinkingMessageId);
+                }
+            }
+
+            async function generateTextResponse(prompt, thinkingMessageId) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${YOUR_API_KEY}`;
+                const payload = { contents: chatHistory };
+                
+                try {
+                    const response = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                    if (text) {
+                        chatHistory.push({ role: "model", parts: [{ text: text }] });
+                        const htmlContent = markdownConverter.makeHtml(text);
+                        updateMessage(thinkingMessageId, htmlContent);
+                    } else {
+                        let feedbackMessage = "I couldn't generate a response. The response was empty or blocked, possibly due to safety filters. Please try rephrasing your prompt.";
+                        if (result.promptFeedback && result.promptFeedback.blockReason) {
+                            feedbackMessage = `I couldn't respond. Reason: The prompt was blocked for ${result.promptFeedback.blockReason.toLowerCase().replace(/_/g, ' ')}. Please rephrase.`;
+                        }
+                        throw new Error(feedbackMessage);
+                    }
+                } catch (error) {
+                    chatHistory.pop();
+                    console.error("Error calling Gemini API:", error);
+                    updateMessage(thinkingMessageId, `<p><b>Error:</b> ${error.message}</p>`);
+                }
+            }
+
+            async function generateImageResponse(prompt, thinkingMessageId) {
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${YOUR_API_KEY}`;
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { responseModalities: ['IMAGE'] },
+                };
+
+                try {
+                    const response = await fetchWithRetry(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+
+                    if (base64Data) {
+                        const imageUrl = `data:image/png;base64,${base64Data}`;
+                        const content = `
+                            <p>Here is the image you requested:</p>
+                            <div class="generated-image-container">
+                                <img src="${imageUrl}" alt="${prompt}" class="generated-image">
+                            </div>
+                        `;
+                        updateMessage(thinkingMessageId, content);
+                    } else {
+                         throw new Error("Sorry, I couldn't generate an image. This might be due to safety filters or if the request is unclear. Please try rephrasing with more detail.");
+                    }
+                } catch (error) {
+                    console.error("Error calling Image Generation API:", error);
+                    updateMessage(thinkingMessageId, `<p><b>Image Generation Error:</b> ${error.message}</p>`);
+                }
+            }
+            
+            async function fetchWithRetry(url, options, maxRetries = 5, baseDelay = 1000) {
+                for (let i = 0; i < maxRetries; i++) {
+                    const response = await fetch(url, options);
+                    if (response.status === 429) { // Too Many Requests
+                        const delay = baseDelay * (2 ** i) + Math.random() * 1000;
+                        console.log(`Rate limit exceeded. Retrying in ${delay.toFixed(0)}ms...`);
+                        await sleep(delay);
+                        continue;
+                    }
+                    if (!response.ok) {
+                        const errorBody = await response.json().catch(() => ({}));
+                        const errorMessage = errorBody?.error?.message || `HTTP error! status: ${response.status}`;
+                        throw new Error(errorMessage);
+                    }
+                    return response;
+                }
+                throw new Error("The AI service is currently experiencing high demand. Please wait a minute and try your request again.");
+            }
+
+            function handleActionButtons(e) {
+                const copyBtn = e.target.closest('.copy-msg-btn');
+                const downloadBtn = e.target.closest('.download-img-btn');
+
+                if (copyBtn) {
+                    const messageContent = copyBtn.closest('.chat-message').querySelector('.message-content');
+                    const contentClone = messageContent.cloneNode(true);
+                    contentClone.querySelectorAll('.code-header, .user-image-preview').forEach(el => el.remove());
+                    let textToCopy = contentClone.innerText || contentClone.textContent;
+                    copyToClipboard(textToCopy, 'Message');
+                }
+
+                if (downloadBtn) {
+                    const image = downloadBtn.closest('.chat-message').querySelector('.generated-image');
+                    if (image) {
+                        const link = document.createElement('a');
+                        link.href = image.src;
+                        link.download = `alpha-ai-image-${Date.now()}.png`;
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }
+            }
+
+            function copyToClipboard(text, type) {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                textArea.style.opacity = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    const successful = document.execCommand('copy');
+                    if (successful) {
+                        console.log(`${type} copied to clipboard successfully!`);
+                    } else {
+                        console.error('Failed to copy text to clipboard.');
+                    }
+                } catch (err) {
+                    console.error('Error copying text to clipboard: ', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        });
+    </script>
+</body>
+</html>
+
