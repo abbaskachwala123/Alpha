@@ -113,7 +113,7 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100%; /* FIX: Changed from 100vh to 100% for better mobile handling */
             background-color: var(--primary-bg);
         }
 
@@ -332,6 +332,23 @@
             justify-content: center;
             line-height: 20px;
         }
+
+        /* --- Mobile Responsive Styles --- */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                z-index: 1000;
+                height: 100%;
+            }
+
+            .chat-message {
+                max-width: 95%;
+            }
+
+            .chat-header-button {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
@@ -394,7 +411,7 @@
             const imageUploadInput = document.getElementById('image-upload-input');
             const imagePreviewContainer = document.getElementById('image-preview-container');
             
-            const YOUR_API_KEY = "AIzaSyAVM3nb3gYD2_JrUGF9rCE752YU52T9rVo"; 
+            const YOUR_API_KEY = "AIzaSyD8Rn863gx7pW_fHVl9bPgKtQvtvlYPuv0"; 
 
             const markdownConverter = new showdown.Converter();
             let chatHistory = [];
@@ -437,6 +454,10 @@
                     parts: [{ text: initialBotMessage }]
                 }];
                 addMessage('bot', `<p>${initialBotMessage}</p>`, null);
+                // FIX: Start with sidebar closed on mobile devices
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.add('closed');
+                }
             }
 
             function startNewChat() {
@@ -569,7 +590,7 @@
             }
             
             async function getAIResponse(prompt, thinkingMessageId) {
-                if (!YOUR_API_KEY) {
+                if (!YOUR_API_KEY || YOUR_API_KEY === "PASTE_YOUR_API_KEY_HERE") {
                     updateMessage(thinkingMessageId, `<p><b>Configuration Error</b><br>The API key is missing. Please get a free key from Google AI Studio and add it to the 'YOUR_API_KEY' variable in the index.html file.</p>`);
                     return;
                 }
@@ -657,7 +678,11 @@
                     }
                 } catch (error) {
                     console.error("Error calling Image Generation API:", error);
-                    updateMessage(thinkingMessageId, `<p><b>Image Generation Error:</b> ${error.message}</p>`);
+                    let userMessage = error.message;
+                    if (userMessage.toLowerCase().includes('api key not found')) {
+                        userMessage = "<b>API Key Error:</b> The provided API key is not valid. Please ensure you have copied the correct key from Google AI Studio and that the 'Generative Language API' is enabled in your Google Cloud project.";
+                    }
+                    updateMessage(thinkingMessageId, `<p><b>Image Generation Error:</b> ${userMessage}</p>`);
                 }
             }
             
